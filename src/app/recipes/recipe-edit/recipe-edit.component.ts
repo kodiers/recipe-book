@@ -1,5 +1,5 @@
 import {Component, OnInit, OnDestroy} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {RecipeService} from '../recipe.service';
 import {Subscription} from 'rxjs';
 import {Recipe} from '../recipe';
@@ -16,9 +16,14 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
   private isNew = true;
   recipeForm: FormGroup;
 
+  private navigateBack() {
+    this.router.navigate(['../']);
+  }
+
   constructor(private route: ActivatedRoute,
               private recipeService: RecipeService,
-              private formBuilder: FormBuilder
+              private formBuilder: FormBuilder,
+              private router: Router
   ) { }
 
   ngOnInit() {
@@ -32,6 +37,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
             this.isNew = true;
             this.recipe = null;
           }
+          this.initForm();
         }
     );
   }
@@ -40,7 +46,7 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  private initForm(isNew: boolean) {
+  private initForm() {
     let recipeName = '';
     let recipeImageUrl = '';
     let recipeContent = '';
@@ -65,6 +71,33 @@ export class RecipeEditComponent implements OnInit, OnDestroy {
       description: [recipeContent, Validators.required],
       ingredients: recipeIngredients
     });
+  }
+
+  onSubmit() {
+    const newRecipe = this.recipeForm.value;
+    if (this.isNew) {
+      this.recipeService.addRecipe(newRecipe);
+    } else {
+      this.recipeService.editRecipe(this.recipe, newRecipe);
+    }
+    this.navigateBack();
+  }
+
+  onCancel() {
+    this.navigateBack();
+  }
+
+  onAddItem(name: string, amount: string) {
+    (<FormArray>this.recipeForm.controls['ingredients']).push(
+        new FormGroup({
+          name: new FormControl(name, Validators.required),
+          amount: new FormControl(amount, [Validators.required, Validators.pattern('\\d+')])
+        })
+    );
+  }
+
+  onRemoveItem(index: number) {
+    (<FormArray>this.recipeForm.controls['ingredients']).removeAt(index);
   }
 
 }
