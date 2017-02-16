@@ -1,9 +1,13 @@
-import { Injectable } from '@angular/core';
+import {Injectable, EventEmitter} from '@angular/core';
 import { Recipe } from './recipe';
 import { Ingredient } from './ingredient';
+import {Headers, Http, Response} from '@angular/http';
+import 'rxjs/Rx';
 
 @Injectable()
 export class RecipeService {
+
+  recipesChanged = new EventEmitter<Recipe[]>();
 
   private recipes: Recipe[] = [
     new Recipe('Schnitzel', 'Very tasty',
@@ -14,7 +18,7 @@ export class RecipeService {
     new Recipe('Summer Salad', 'Okayish', 'http://ohmyveggies.com/wp-content/uploads/2013/06/the_perfect_summer_salad.jpg', [])
   ];
 
-  constructor() {}
+  constructor(private http: Http) {}
 
   getRecipes() {
     return this.recipes;
@@ -34,5 +38,23 @@ export class RecipeService {
 
   editRecipe(oldRecipe: Recipe, newRecipe: Recipe) {
       this.recipes[this.recipes.indexOf(oldRecipe)] = newRecipe;
+  }
+
+  storeData() {
+      const body = JSON.stringify(this.recipes);
+      const headers = new Headers({
+          'Content-Type': 'application/json'
+      });
+      return this.http.put('https://recipebook-b74df.firebaseio.com/recipes.json', body, {headers: headers});
+  }
+
+  fetchData() {
+      return this.http.get('https://recipebook-b74df.firebaseio.com/recipes.json').map(
+          (response: Response) => response.json()).subscribe(
+              (data: Recipe[]) => {
+                  this.recipes = data;
+                  this.recipesChanged.emit(this.recipes);
+              }
+      );
   }
 }
